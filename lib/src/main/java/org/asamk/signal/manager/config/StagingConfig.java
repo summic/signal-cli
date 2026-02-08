@@ -25,33 +25,44 @@ import static org.asamk.signal.manager.api.ServiceEnvironment.STAGING;
 
 class StagingConfig {
 
+    // Self-hosted staging (deploy/nginx/staging.conf):
+    // - chat-staging.beforeve.com
+    // - cdn-staging.beforeve.com
+    // - storage-staging.beforeve.com
+    //
+    // Unidentified delivery trust root is generated via:
+    //   java -Dsecrets.bundle.filename=... -cp ... WhisperServerService certificate --ca
+    // and must match the CA that signs `unidentifiedDelivery.certificate` in signal-server config.
     private static final byte[] UNIDENTIFIED_SENDER_TRUST_ROOT = Base64.getDecoder()
-            .decode("BbqY1DzohE4NUZoVF+L18oUPrK3kILllLEJh2UnPSsEx");
+            .decode("BfamUBilj9o9xx6U5/8R4dqDEyxQSRUuRZOLP+OhG+Qg");
     private static final byte[] UNIDENTIFIED_SENDER_TRUST_ROOT2 = Base64.getDecoder()
-            .decode("BYhU6tPjqP46KGZEzRs1OL4U39V5dlPJ/X09ha4rErkm");
+            .decode("BfamUBilj9o9xx6U5/8R4dqDEyxQSRUuRZOLP+OhG+Qg");
     private static final String CDSI_MRENCLAVE = "0f6fd79cdfdaa5b2e6337f534d3baf999318b0c462a7ac1f41297a3e4b424a57";
-    private static final String SVR2_MRENCLAVE = "a75542d82da9f6914a1e31f8a7407053b99cc99a0e7291d8fbd394253e19b036";
 
-    private static final String URL = "https://chat.staging.signal.org";
-    private static final String CDN_URL = "https://cdn-staging.signal.org";
-    private static final String CDN2_URL = "https://cdn2-staging.signal.org";
-    private static final String CDN3_URL = "https://cdn3-staging.signal.org";
-    private static final String STORAGE_URL = "https://storage-staging.signal.org";
-    private static final String SIGNAL_CDSI_URL = "https://cdsi.staging.signal.org";
-    private static final String SIGNAL_SVR2_URL = "https://svr2.staging.signal.org";
+    private static final String URL = "https://chat-staging.beforeve.com";
+    private static final String CDN_URL = "https://cdn-staging.beforeve.com";
+    private static final String CDN2_URL = "https://cdn-staging.beforeve.com";
+    private static final String CDN3_URL = "https://cdn-staging.beforeve.com";
+    private static final String STORAGE_URL = "https://storage-staging.beforeve.com";
+
+    // Self-hosted stack does not include CDSI/SVR2 services. These URLs must not point at signal.org.
+    // Calls will fail if those features are used.
+    private static final String SIGNAL_CDSI_URL = "https://chat-staging.beforeve.com";
+    private static final String SIGNAL_SVR2_URL = "https://chat-staging.beforeve.com";
     private static final TrustStore TRUST_STORE = new WhisperTrustStore();
 
     private static final Optional<Dns> dns = Optional.empty();
     private static final Optional<SignalProxy> proxy = Optional.empty();
     private static final Optional<HttpProxy> systemProxy = Optional.empty();
 
-    private static final byte[] zkGroupServerPublicParams = Base64.getDecoder()
-            .decode("ABSY21VckQcbSXVNCGRYJcfWHiAMZmpTtTELcDmxgdFbtp/bWsSxZdMKzfCp8rvIs8ocCU3B37fT3r4Mi5qAemeGeR2X+/YmOGR5ofui7tD5mDQfstAI9i+4WpMtIe8KC3wU5w3Inq3uNWVmoGtpKndsNfwJrCg0Hd9zmObhypUnSkfYn2ooMOOnBpfdanRtrvetZUayDMSC5iSRcXKpdlukrpzzsCIvEwjwQlJYVPOQPj4V0F4UXXBdHSLK05uoPBCQG8G9rYIGedYsClJXnbrgGYG3eMTG5hnx4X4ntARBgELuMWWUEEfSK0mjXg+/2lPmWcTZWR9nkqgQQP0tbzuiPm74H2wMO4u1Wafe+UwyIlIT9L7KLS19Aw8r4sPrXZSSsOZ6s7M1+rTJN0bI5CKY2PX29y5Ok3jSWufIKcgKOnWoP67d5b2du2ZVJjpjfibNIHbT/cegy/sBLoFwtHogVYUewANUAXIaMPyCLRArsKhfJ5wBtTminG/PAvuBdJ70Z/bXVPf8TVsR292zQ65xwvWTejROW6AZX6aqucUjlENAErBme1YHmOSpU6tr6doJ66dPzVAWIanmO/5mgjNEDeK7DDqQdB1xd03HT2Qs2TxY3kCK8aAb/0iM0HQiXjxZ9HIgYhbtvGEnDKW5ILSUydqH/KBhW4Pb0jZWnqN/YgbWDKeJxnDbYcUob5ZY5Lt5ZCMKuaGUvCJRrCtuugSMaqjowCGRempsDdJEt+cMaalhZ6gczklJB/IbdwENW9KeVFPoFNFzhxWUIS5ML9riVYhAtE6JE5jX0xiHNVIIPthb458cfA8daR0nYfYAUKogQArm0iBezOO+mPk5vCNWI+wwkyFCqNDXz/qxl1gAntuCJtSfq9OC3NkdhQlgYQ==");
-    private static final byte[] genericServerPublicParams = Base64.getDecoder()
-            .decode("AHILOIrFPXX9laLbalbA9+L1CXpSbM/bTJXZGZiuyK1JaI6dK5FHHWL6tWxmHKYAZTSYmElmJ5z2A5YcirjO/yfoemE03FItyaf8W1fE4p14hzb5qnrmfXUSiAIVrhaXVwIwSzH6RL/+EO8jFIjJ/YfExfJ8aBl48CKHgu1+A6kWynhttonvWWx6h7924mIzW0Czj2ROuh4LwQyZypex4GuOPW8sgIT21KNZaafgg+KbV7XM1x1tF3XA17B4uGUaDbDw2O+nR1+U5p6qHPzmJ7ggFjSN6Utu+35dS1sS0P9N");
+    // `zkConfig.serverPublic` from deploy/config/staging/signal-server.yml
+    private static final String SERVER_PUBLIC_PARAMS_BASE64 =
+            "AAweBMDqxprwsJWHAuuEsz+LhWGFt5Jxrwh2MFsG2g9tQCY0o/D07Z954XphLIXNS1LqN+1RYRQwaCTfrYtt+XWA1oEvy69mOx/9GrZ6Bvq/D/TodNNpDWeC+dV/NKDxC25wWiBpWWZWyuymq1PAVflM81KVALZoX16Ou4gctZIlrjC5tL3Va7wYChorBCszy2VQ6AbOnTvnK24xmavOJnjEQQL/h2VTIuEchhu3NkkeIo2moX67hIoXEN+VFhMqXhSEcJy6wsW+URfE5d6ugEYJyzS9ZP8RICdxw78cWJ9dMuQ09mcK0M9ykVCc8gQA0D1aj7FC5Lc3FP0v0FjCd20Exptoa6sGZ0EzHOP3aa0Qv5PravrDgmmUILSVsZPNe07MoiNGTKattNszmYvHs2LiGLJ8qYhVCRq1VLzgu4oglHXHIGhvh57+QQRV/f82rxmc/Q9xzNAus7e8lcUfGVPOzBacbiVCuSjvVH9j2m6tm50DdO3iTBcyCjdCWkeGEkq0uvfMc7Lu2/29MSMQw8DB9jy9BrLY6dEDGESxqx8V6u/53XiJS0LFsuEN9ygJfwYhdD0kSMv4+L2UnjflPh8I243XXmiI1hTGYRsVVGkCMKrITkrKxQKpYuBkN3NaP6rjFjEpYnVvcZXbxehArC6kiaSvvOLwTwaySe+a3JlydHCScY3KoW6qmC3xfMLs3eHChi5jBolCnDx2pWe0DSsywh+dnZpQk3+U3etBDsgw6a6P16Wd0XxgsajIpPZ7F9LlZdaW+6KkkQzRQZQud3kk1aD3sB3OeG+fXEJ6X4VV4qtRzX0XMBrAxAqHuzlCd0J0ULQ9PuyvLOfLu4LWmg+wMrt8V7K6SBaerb6yJyKyCtnxANgggihCOdNey7leaA==";
 
-    private static final byte[] backupServerPublicParams = Base64.getDecoder()
-            .decode("AHYrGb9IfugAAJiPKp+mdXUx+OL9zBolPYHYQz6GI1gWjpEu5me3zVNSvmYY4zWboZHif+HG1sDHSuvwFd0QszSwuSF4X4kRP3fJREdTZ5MCR0n55zUppTwfHRW2S4sdQ0JGz7YDQIJCufYSKh0pGNEHL6hv79Agrdnr4momr3oXdnkpVBIp3HWAQ6IbXQVSG18X36GaicI1vdT0UFmTwU2KTneluC2eyL9c5ff8PcmiS+YcLzh0OKYQXB5ZfQ06d6DiINvDQLy75zcfUOniLAj0lGJiHxGczin/RXisKSR8");
+    // This self-host stack only provides one set of zk public params. Use it for all libsignal zk ops.
+    private static final byte[] zkGroupServerPublicParams = Base64.getDecoder().decode(SERVER_PUBLIC_PARAMS_BASE64);
+    private static final byte[] genericServerPublicParams = Base64.getDecoder().decode(SERVER_PUBLIC_PARAMS_BASE64);
+    private static final byte[] backupServerPublicParams = Base64.getDecoder().decode(SERVER_PUBLIC_PARAMS_BASE64);
 
     private static final Network.Environment LIBSIGNAL_NET_ENV = Network.Environment.STAGING;
 
@@ -93,7 +104,7 @@ class StagingConfig {
                 createDefaultServiceConfiguration(interceptors),
                 getUnidentifiedSenderTrustRoots(),
                 CDSI_MRENCLAVE,
-                List.of(SVR2_MRENCLAVE));
+                List.of());
     }
 
     private StagingConfig() {

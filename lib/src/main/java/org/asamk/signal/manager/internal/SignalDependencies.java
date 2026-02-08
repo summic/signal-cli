@@ -153,9 +153,24 @@ public class SignalDependencies {
 
     public Network getLibSignalNetwork() {
         return getOrCreate(() -> libSignalNetwork, () -> {
+            // libsignal-net hardcodes Signal hostnames in the native layer. We pass hostname overrides
+            // to redirect staging traffic to our self-hosted stack.
+            //
+            // See deploy/nginx/staging.conf for the actual hostnames.
+            final Map<String, String> hostOverrides = switch (serviceEnvironmentConfig.type()) {
+                case LIVE -> Map.of();
+                case STAGING -> Map.of(
+                        "chat.staging.signal.org", "chat-staging.beforeve.com",
+                        "grpc.chat.staging.signal.org", "chat-staging.beforeve.com",
+                        "cdsi.staging.signal.org", "chat-staging.beforeve.com",
+                        "svr2.staging.signal.org", "chat-staging.beforeve.com",
+                        "svrb.staging.signal.org", "chat-staging.beforeve.com"
+                );
+            };
+
             libSignalNetwork = new Network(serviceEnvironmentConfig.netEnvironment(),
                     userAgent,
-                    Map.of(),
+                    hostOverrides,
                     Network.BuildVariant.PRODUCTION);
             setSignalNetworkProxy(libSignalNetwork);
         });
