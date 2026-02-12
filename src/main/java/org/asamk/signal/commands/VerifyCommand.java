@@ -33,14 +33,25 @@ public class VerifyCommand implements RegistrationCommand, JsonRpcRegistrationCo
     @Override
     public void attachToSubparser(final Subparser subparser) {
         subparser.help("Verify the number using the code received via SMS or voice.");
-        subparser.addArgument("verification-code").help("The verification code you received via sms or voice call.");
+        subparser.addArgument("verification-code").nargs("?").help("The verification code you received via sms or voice call.");
         subparser.addArgument("-p", "--pin").help("The registration lock PIN, that was set by the user (Optional)");
+        subparser.addArgument("--oauth")
+                .help("Use OAuth login flow and skip SMS/voice code requirement.")
+                .action(net.sourceforge.argparse4j.impl.Arguments.storeTrue());
     }
 
     @Override
     public void handleCommand(final Namespace ns, final RegistrationManager m) throws CommandException {
         var verificationCode = ns.getString("verification-code");
         var pin = ns.getString("pin");
+        var oauthMode = ns.getBoolean("oauth") || isOAuthModeEnabled();
+
+        if (oauthMode) {
+            logger.info("OAuth mode enabled: skipping SMS/voice verification code enforcement.");
+            if (verificationCode == null || verificationCode.isBlank()) {
+                verificationCode = "000000";
+            }
+        }
 
         verify(m, verificationCode, pin);
     }
@@ -61,7 +72,11 @@ public class VerifyCommand implements RegistrationCommand, JsonRpcRegistrationCo
             final RegistrationManager m,
             final JsonWriter jsonWriter
     ) throws CommandException {
-        verify(m, request.verificationCode(), request.pin());
+        var verificationCode = request.verificationCode();
+        if (isOAuthModeEnabled() && (verificationCode == null || verificationCode.isBlank())) {
+            verificationCode = "000000";
+        }
+        verify(m, verificationCode, request.pin());
     }
 
     private void verify(
@@ -69,6 +84,10 @@ public class VerifyCommand implements RegistrationCommand, JsonRpcRegistrationCo
             final String verificationCode,
             final String pin
     ) throws UserErrorException, IOErrorException {
+        if (verificationCode == null || verificationCode.isBlank()) {
+            throw new UserErrorException("Missing verification code. Provide one or use --oauth / SIGNAL_CLI_OAUTH_MODE=true.");
+        }
+
         try {
             m.verifyAccount(verificationCode, pin);
         } catch (PinLockedException e) {
@@ -83,6 +102,11 @@ public class VerifyCommand implements RegistrationCommand, JsonRpcRegistrationCo
         } catch (IOException e) {
             throw new IOErrorException("Verify error: " + e.getMessage(), e);
         }
+    }
+
+    private boolean isOAuthModeEnabled() {
+        final var value = System.getenv("SIGNAL_CLI_OAUTH_MODE");
+        return value != null && ("1".equals(value) || "true".equalsIgnoreCase(value) || "yes".equalsIgnoreCase(value));
     }
 
     public record VerifyParams(String verificationCode, String pin) {}
