@@ -25,33 +25,41 @@ import static org.asamk.signal.manager.api.ServiceEnvironment.LIVE;
 
 class LiveConfig {
 
+    // Self-hosted production:
+    // - chat.beforeve.com
+    // - cdn.beforeve.com
+    // - storage.beforeve.com
+    //
+    // Must match the CA that signs `unidentifiedDelivery.certificate` in
+    // deploy/config/production/signal-server.yml.
     private static final byte[] UNIDENTIFIED_SENDER_TRUST_ROOT = Base64.getDecoder()
-            .decode("BXu6QIKVz5MA8gstzfOgRQGqyLqOwNKHL6INkv3IHWMF");
+            .decode("BRSe+aurx8RvqVKsR6Eygr5WIVRzd/4jBdwLrnviY1QJ");
     private static final byte[] UNIDENTIFIED_SENDER_TRUST_ROOT2 = Base64.getDecoder()
-            .decode("BUkY0I+9+oPgDCn4+Ac6Iu813yvqkDr/ga8DzLxFxuk6");
+            .decode("BRSe+aurx8RvqVKsR6Eygr5WIVRzd/4jBdwLrnviY1QJ");
     private static final String CDSI_MRENCLAVE = "0f6fd79cdfdaa5b2e6337f534d3baf999318b0c462a7ac1f41297a3e4b424a57";
-    private static final String SVR2_MRENCLAVE = "29cd63c87bea751e3bfd0fbd401279192e2e5c99948b4ee9437eafc4968355fb";
 
-    private static final String URL = "https://chat.signal.org";
-    private static final String CDN_URL = "https://cdn.signal.org";
-    private static final String CDN2_URL = "https://cdn2.signal.org";
-    private static final String CDN3_URL = "https://cdn3.signal.org";
-    private static final String STORAGE_URL = "https://storage.signal.org";
-    private static final String SIGNAL_CDSI_URL = "https://cdsi.signal.org";
-    private static final String SIGNAL_SVR2_URL = "https://svr2.signal.org";
+    private static final String URL = "https://chat.beforeve.com";
+    private static final String CDN_URL = "https://cdn.beforeve.com";
+    private static final String CDN2_URL = "https://cdn2.beforeve.com";
+    private static final String CDN3_URL = "https://tus.beforeve.com";
+    private static final String STORAGE_URL = "https://storage.beforeve.com";
+    // Keep these on self-hosted infra as well (never signal.org).
+    private static final String SIGNAL_CDSI_URL = "https://chat.beforeve.com";
+    private static final String SIGNAL_SVR2_URL = "https://chat.beforeve.com";
     private static final TrustStore TRUST_STORE = new WhisperTrustStore();
 
     private static final Optional<Dns> dns = Optional.empty();
     private static final Optional<SignalProxy> proxy = Optional.empty();
     private static final Optional<HttpProxy> systemProxy = Optional.empty();
 
-    private static final byte[] zkGroupServerPublicParams = Base64.getDecoder()
-            .decode("AMhf5ywVwITZMsff/eCyudZx9JDmkkkbV6PInzG4p8x3VqVJSFiMvnvlEKWuRob/1eaIetR31IYeAbm0NdOuHH8Qi+Rexi1wLlpzIo1gstHWBfZzy1+qHRV5A4TqPp15YzBPm0WSggW6PbSn+F4lf57VCnHF7p8SvzAA2ZZJPYJURt8X7bbg+H3i+PEjH9DXItNEqs2sNcug37xZQDLm7X36nOoGPs54XsEGzPdEV+itQNGUFEjY6X9Uv+Acuks7NpyGvCoKxGwgKgE5XyJ+nNKlyHHOLb6N1NuHyBrZrgtY/JYJHRooo5CEqYKBqdFnmbTVGEkCvJKxLnjwKWf+fEPoWeQFj5ObDjcKMZf2Jm2Ae69x+ikU5gBXsRmoF94GXTLfN0/vLt98KDPnxwAQL9j5V1jGOY8jQl6MLxEs56cwXN0dqCnImzVH3TZT1cJ8SW1BRX6qIVxEzjsSGx3yxF3suAilPMqGRp4ffyopjMD1JXiKR2RwLKzizUe5e8XyGOy9fplzhw3jVzTRyUZTRSZKkMLWcQ/gv0E4aONNqs4P+NameAZYOD12qRkxosQQP5uux6B2nRyZ7sAV54DgFyLiRcq1FvwKw2EPQdk4HDoePrO/RNUbyNddnM/mMgj4FW65xCoT1LmjrIjsv/Ggdlx46ueczhMgtBunx1/w8k8V+l8LVZ8gAT6wkU5J+DPQalQguMg12Jzug3q4TbdHiGCmD9EunCwOmsLuLJkz6EcSYXtrlDEnAM+hicw7iergYLLlMXpfTdGxJCWJmP4zqUFeTTmsmhsjGBt7NiEB/9pFFEB3pSbf4iiUukw63Eo8Aqnf4iwob6X1QviCWuc8t0LUlT9vALgh/f2DPVOOmR0RW6bgRvc7DSF20V/omg+YBw==");
-    private static final byte[] genericServerPublicParams = Base64.getDecoder()
-            .decode("AByD873dTilmOSG0TjKrvpeaKEsUmIO8Vx9BeMmftwUs9v7ikPwM8P3OHyT0+X3EUMZrSe9VUp26Wai51Q9I8mdk0hX/yo7CeFGJyzoOqn8e/i4Ygbn5HoAyXJx5eXfIbqpc0bIxzju4H/HOQeOpt6h742qii5u/cbwOhFZCsMIbElZTaeU+BWMBQiZHIGHT5IE0qCordQKZ5iPZom0HeFa8Yq0ShuEyAl0WINBiY6xE3H/9WnvzXBbMuuk//eRxXgzO8ieCeK8FwQNxbfXqZm6Ro1cMhCOF3u7xoX83QhpN");
+    // `zkConfig.serverPublic` from deploy/config/production/signal-server.yml
+    private static final String SERVER_PUBLIC_PARAMS_BASE64 =
+            "AAweBMDqxprwsJWHAuuEsz+LhWGFt5Jxrwh2MFsG2g9tQCY0o/D07Z954XphLIXNS1LqN+1RYRQwaCTfrYtt+XWA1oEvy69mOx/9GrZ6Bvq/D/TodNNpDWeC+dV/NKDxC25wWiBpWWZWyuymq1PAVflM81KVALZoX16Ou4gctZIlrjC5tL3Va7wYChorBCszy2VQ6AbOnTvnK24xmavOJnjEQQL/h2VTIuEchhu3NkkeIo2moX67hIoXEN+VFhMqXhSEcJy6wsW+URfE5d6ugEYJyzS9ZP8RICdxw78cWJ9dMuQ09mcK0M9ykVCc8gQA0D1aj7FC5Lc3FP0v0FjCd20Exptoa6sGZ0EzHOP3aa0Qv5PravrDgmmUILSVsZPNe07MoiNGTKattNszmYvHs2LiGLJ8qYhVCRq1VLzgu4oglHXHIGhvh57+QQRV/f82rxmc/Q9xzNAus7e8lcUfGVPOzBacbiVCuSjvVH9j2m6tm50DdO3iTBcyCjdCWkeGEkq0uvfMc7Lu2/29MSMQw8DB9jy9BrLY6dEDGESxqx8V6u/53XiJS0LFsuEN9ygJfwYhdD0kSMv4+L2UnjflPh8I243XXmiI1hTGYRsVVGkCMKrITkrKxQKpYuBkN3NaP6rjFjEpYnVvcZXbxehArC6kiaSvvOLwTwaySe+a3JlydHCScY3KoW6qmC3xfMLs3eHChi5jBolCnDx2pWe0DSsywh+dnZpQk3+U3etBDsgw6a6P16Wd0XxgsajIpPZ7F9LlZdaW+6KkkQzRQZQud3kk1aD3sB3OeG+fXEJ6X4VV4qtRzX0XMBrAxAqHuzlCd0J0ULQ9PuyvLOfLu4LWmg+wMrt8V7K6SBaerb6yJyKyCtnxANgggihCOdNey7leaA==";
 
-    private static final byte[] backupServerPublicParams = Base64.getDecoder()
-            .decode("AJwNSU55fsFCbgaxGRD11wO1juAs8Yr5GF8FPlGzzvdJJIKH5/4CC7ZJSOe3yL2vturVaRU2Cx0n751Vt8wkj1bozK3CBV1UokxV09GWf+hdVImLGjXGYLLhnI1J2TWEe7iWHyb553EEnRb5oxr9n3lUbNAJuRmFM7hrr0Al0F0wrDD4S8lo2mGaXe0MJCOM166F8oYRQqpFeEHfiLnxA1O8ZLh7vMdv4g9jI5phpRBTsJ5IjiJrWeP0zdIGHEssUeprDZ9OUJ14m0v61eYJMKsf59Bn+mAT2a7YfB+Don9O");
+    // This self-host stack uses one set of zk public params.
+    private static final byte[] zkGroupServerPublicParams = Base64.getDecoder().decode(SERVER_PUBLIC_PARAMS_BASE64);
+    private static final byte[] genericServerPublicParams = Base64.getDecoder().decode(SERVER_PUBLIC_PARAMS_BASE64);
+    private static final byte[] backupServerPublicParams = Base64.getDecoder().decode(SERVER_PUBLIC_PARAMS_BASE64);
 
     private static final Environment LIBSIGNAL_NET_ENV = Environment.PRODUCTION;
 
@@ -93,7 +101,7 @@ class LiveConfig {
                 createDefaultServiceConfiguration(interceptors),
                 getUnidentifiedSenderTrustRoots(),
                 CDSI_MRENCLAVE,
-                List.of(SVR2_MRENCLAVE));
+                List.of());
     }
 
     private LiveConfig() {

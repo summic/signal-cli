@@ -34,9 +34,9 @@ class StagingConfig {
     //   java -Dsecrets.bundle.filename=... -cp ... WhisperServerService certificate --ca
     // and must match the CA that signs `unidentifiedDelivery.certificate` in signal-server config.
     private static final byte[] UNIDENTIFIED_SENDER_TRUST_ROOT = Base64.getDecoder()
-            .decode("BfamUBilj9o9xx6U5/8R4dqDEyxQSRUuRZOLP+OhG+Qg");
+            .decode("BRSe+aurx8RvqVKsR6Eygr5WIVRzd/4jBdwLrnviY1QJ");
     private static final byte[] UNIDENTIFIED_SENDER_TRUST_ROOT2 = Base64.getDecoder()
-            .decode("BfamUBilj9o9xx6U5/8R4dqDEyxQSRUuRZOLP+OhG+Qg");
+            .decode("BRSe+aurx8RvqVKsR6Eygr5WIVRzd/4jBdwLrnviY1QJ");
     private static final String CDSI_MRENCLAVE = "0f6fd79cdfdaa5b2e6337f534d3baf999318b0c462a7ac1f41297a3e4b424a57";
 
     private static final String URL = "https://chat-staging.beforeve.com";
