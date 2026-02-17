@@ -301,7 +301,12 @@ public class SignalAccount implements Closeable {
         this.aciAccountData.setServiceId(aci);
         this.pniAccountData.setServiceId(pni);
         this.init();
-        getRecipientTrustedResolver().resolveSelfRecipientTrusted(getSelfRecipientAddress());
+        final var selfRecipientId = getRecipientTrustedResolver().resolveSelfRecipientTrusted(getSelfRecipientAddress());
+        if (getProfileStore().getProfile(selfRecipientId) == null) {
+            // On freshly linked devices, storage sync can run before the self profile is synced.
+            // Seed an empty profile row so capability checks don't dereference null.
+            getProfileStore().storeProfile(selfRecipientId, Profile.newBuilder().build());
+        }
         this.password = password;
         this.profileKey = profileKey;
         this.encryptedDeviceName = encryptedDeviceName;

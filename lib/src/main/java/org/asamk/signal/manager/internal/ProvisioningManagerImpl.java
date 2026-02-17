@@ -26,13 +26,27 @@ import org.asamk.signal.manager.config.ServiceEnvironmentConfig;
 import org.asamk.signal.manager.storage.SignalAccount;
 import org.asamk.signal.manager.storage.accounts.AccountsStore;
 import org.asamk.signal.manager.util.KeyUtils;
+import org.signal.core.models.AccountEntropyPool;
+import org.signal.core.models.MasterKey;
+import org.signal.core.models.ServiceId;
+import org.signal.core.util.Hex;
+import org.signal.core.util.UuidUtil;
+import org.signal.core.models.backup.MediaRootBackupKey;
 import org.signal.libsignal.protocol.IdentityKeyPair;
+import org.signal.libsignal.protocol.IdentityKey;
+import org.signal.libsignal.protocol.InvalidKeyException;
+import org.signal.libsignal.protocol.ecc.ECPrivateKey;
+import org.signal.libsignal.protocol.ecc.ECPublicKey;
+import org.signal.libsignal.protocol.util.ByteUtil;
+import org.signal.libsignal.zkgroup.InvalidInputException;
+import org.signal.libsignal.zkgroup.profiles.ProfileKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.whispersystems.signalservice.api.push.ServiceIdType;
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
 import org.whispersystems.signalservice.api.push.exceptions.AuthorizationFailedException;
 import org.whispersystems.signalservice.api.registration.ProvisioningApi;
+import org.whispersystems.signalservice.api.util.CredentialsProvider;
 import org.whispersystems.signalservice.api.util.DeviceNameUtil;
 import org.whispersystems.signalservice.internal.push.ProvisioningSocket;
 import org.whispersystems.signalservice.internal.push.PushServiceSocket;
@@ -40,6 +54,9 @@ import org.whispersystems.signalservice.internal.util.DynamicCredentialsProvider
 
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.Arrays;
 import java.nio.channels.OverlappingFileLockException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
@@ -57,6 +74,8 @@ public class ProvisioningManagerImpl implements ProvisioningManager {
     private final AccountsStore accountsStore;
 
     private final ProvisioningApi provisioningApi;
+    private final ProvisioningSocket provisioningSocket;
+    private final CredentialsProvider credentialsProvider;
     private final IdentityKeyPair tempIdentityKey;
     private final String password;
 
@@ -87,6 +106,8 @@ public class ProvisioningManagerImpl implements ProvisioningManager {
         final var provisioningSocket = new ProvisioningSocket(serviceEnvironmentConfig.signalServiceConfiguration(),
                 userAgent);
         this.provisioningApi = new ProvisioningApi(pushServiceSocket, provisioningSocket, credentialsProvider);
+        this.credentialsProvider = credentialsProvider;
+        this.provisioningSocket = provisioningSocket;
     }
 
     @Override
@@ -98,7 +119,7 @@ public class ProvisioningManagerImpl implements ProvisioningManager {
 
     @Override
     public String finishDeviceLink(String deviceName) throws IOException, TimeoutException, UserAlreadyExistsException {
-        var ret = provisioningApi.getNewDeviceRegistration(tempIdentityKey);
+        var ret = getNewDeviceRegistrationWithDebug();
         var number = ret.getNumber();
         var aci = ret.getAci();
         var pni = ret.getPni();
@@ -159,8 +180,16 @@ public class ProvisioningManagerImpl implements ProvisioningManager {
                     account.getAccountAttributes(null),
                     aciPreKeys,
                     pniPreKeys);
+            logger.error("Linked device registration returned deviceId: {}", deviceId);
 
             account.finishLinking(deviceId, aciPreKeys, pniPreKeys);
+            logger.error("Local account credentials after finishLinking: aci={}, pni={}, number={}, deviceId={}, passwordLength={}",
+                    account.getAci(),
+                    account.getPni(),
+                    account.getNumber(),
+                    account.getDeviceId(),
+                    account.getPassword() == null ? -1 : account.getPassword().length());
+            logger.error("Local account password fingerprint after finishLinking: {}", fingerprint(account.getPassword()));
 
             ManagerImpl m = null;
             try {
@@ -204,6 +233,195 @@ public class ProvisioningManagerImpl implements ProvisioningManager {
         }
     }
 
+    private ProvisioningApi.NewDeviceRegistrationReturn getNewDeviceRegistrationWithDebug()
+            throws IOException, TimeoutException {
+        final var message = provisioningSocket.getProvisioningMessage(tempIdentityKey);
+        logger.error("Provisioning message aci field: {}", message.aci);
+        logger.error("Provisioning message pni field: {}", message.pni);
+        logger.error("Provisioning message number field: {}", message.number);
+        logger.error("Provisioning message provisioningVersion: {}", message.provisioningVersion);
+        logger.error("Provisioning message aciBinary length: {}",
+                message.aciBinary == null ? "null" : message.aciBinary.size());
+        logger.error("Provisioning message pniBinary length: {}",
+                message.pniBinary == null ? "null" : message.pniBinary.size());
+        logger.error("Provisioning message aciBinary: {}",
+                message.aciBinary == null ? "null" : Hex.toStringCondensed(message.aciBinary.toByteArray()));
+        logger.error("Provisioning message pniBinary: {}",
+                message.pniBinary == null ? "null" : Hex.toStringCondensed(message.pniBinary.toByteArray()));
+        System.err.println("Provisioning message aci field: " + message.aci);
+        System.err.println("Provisioning message pni field: " + message.pni);
+        System.err.println("Provisioning message number field: " + message.number);
+        System.err.println("Provisioning message provisioningVersion: " + message.provisioningVersion);
+        System.err.println("Provisioning message aciBinary length: " + (message.aciBinary == null ? "null"
+                : message.aciBinary.size()));
+        System.err.println("Provisioning message pniBinary length: " + (message.pniBinary == null ? "null"
+                : message.pniBinary.size()));
+        System.err.println("Provisioning message aciBinary: "
+                + (message.aciBinary == null ? "null" : Hex.toStringCondensed(message.aciBinary.toByteArray())));
+        System.err.println("Provisioning message pniBinary: "
+                + (message.pniBinary == null ? "null" : Hex.toStringCondensed(message.pniBinary.toByteArray())));
+
+        var aci = parseServiceIdAci(message.aci, message.aciBinary);
+        var pni = parseServiceIdPni(message.pni, message.pniBinary);
+        if (credentialsProvider instanceof DynamicCredentialsProvider) {
+            final var provider = (DynamicCredentialsProvider) credentialsProvider;
+            provider.setAci(aci);
+            provider.setPni(pni);
+        }
+        final var aciIdentity = parseIdentityKeyPair(message.aciIdentityKeyPublic.toByteArray(),
+                message.aciIdentityKeyPrivate.toByteArray());
+        final var pniIdentity = message.pniIdentityKeyPublic == null || message.pniIdentityKeyPrivate == null
+                ? null
+                : parseIdentityKeyPair(message.pniIdentityKeyPublic.toByteArray(), message.pniIdentityKeyPrivate.toByteArray());
+        final ProfileKey profileKey;
+        try {
+            profileKey = message.profileKey == null ? null : new ProfileKey(message.profileKey.toByteArray());
+        } catch (InvalidInputException e) {
+            throw new IOException("Failed to decrypt profile key", e);
+        }
+        final MasterKey masterKey;
+        try {
+            masterKey = message.masterKey == null ? null : new MasterKey(message.masterKey.toByteArray());
+        } catch (AssertionError e) {
+            throw new IOException("Failed to decrypt master key", e);
+        }
+        final AccountEntropyPool accountEntropyPool = message.accountEntropyPool == null
+                ? null
+                : new AccountEntropyPool(message.accountEntropyPool);
+        final MediaRootBackupKey mediaRootBackupKey = message.mediaRootBackupKey == null
+                || message.mediaRootBackupKey.size() != 32 ? null : new MediaRootBackupKey(message.mediaRootBackupKey.toByteArray());
+        if (credentialsProvider instanceof DynamicCredentialsProvider) {
+            ((DynamicCredentialsProvider) credentialsProvider).setE164(message.number);
+        }
+        return createNewDeviceRegistrationReturn(message.provisioningCode,
+                aciIdentity,
+                pniIdentity,
+                message.number,
+                aci,
+                pni,
+                profileKey,
+                masterKey,
+                accountEntropyPool,
+                mediaRootBackupKey,
+                message.readReceipts != null && message.readReceipts);
+    }
+
+    private ProvisioningApi.NewDeviceRegistrationReturn createNewDeviceRegistrationReturn(
+            String provisioningCode,
+            IdentityKeyPair aciIdentity,
+            IdentityKeyPair pniIdentity,
+            String number,
+            ServiceId.ACI aci,
+            ServiceId.PNI pni,
+            ProfileKey profileKey,
+            MasterKey masterKey,
+            AccountEntropyPool accountEntropyPool,
+            MediaRootBackupKey mediaRootBackupKey,
+            boolean readReceipts
+    ) throws IOException {
+        try {
+            final var ctor = ProvisioningApi.NewDeviceRegistrationReturn.class.getDeclaredConstructor(
+                    String.class,
+                    IdentityKeyPair.class,
+                    IdentityKeyPair.class,
+                    String.class,
+                    ServiceId.ACI.class,
+                    ServiceId.PNI.class,
+                    ProfileKey.class,
+                    MasterKey.class,
+                    AccountEntropyPool.class,
+                    MediaRootBackupKey.class,
+                    Boolean.TYPE);
+            ctor.setAccessible(true);
+            return (ProvisioningApi.NewDeviceRegistrationReturn) ctor.newInstance(provisioningCode,
+                    aciIdentity,
+                    pniIdentity,
+                    number,
+                    aci,
+                    pni,
+                    profileKey,
+                    masterKey,
+                    accountEntropyPool,
+                    mediaRootBackupKey,
+                    readReceipts);
+        } catch (Exception e) {
+            throw new IOException("Failed to parse provisioning return", e);
+        }
+    }
+
+    private ServiceId.ACI parseServiceIdAci(final String aci, final okio.ByteString aciBinary) {
+        if (aci != null) {
+            return ServiceId.ACI.parseOrThrow(aci);
+        }
+
+        if (aciBinary != null && aciBinary.size() > 0) {
+            final var rawBytes = aciBinary.toByteArray();
+            final var parsed = parseServiceIdWithTypeMarker(rawBytes, true);
+            if (parsed instanceof ServiceId.ACI) {
+                return (ServiceId.ACI) parsed;
+            }
+        }
+
+        throw new IllegalArgumentException("Invalid ACI!");
+    }
+
+    private ServiceId.PNI parseServiceIdPni(final String pni, final okio.ByteString pniBinary) {
+        if (pni != null) {
+            return ServiceId.PNI.parseOrThrow(pni);
+        }
+
+        if (pniBinary != null && pniBinary.size() > 0) {
+            final var rawBytes = pniBinary.toByteArray();
+            final var parsed = parseServiceIdWithTypeMarker(rawBytes, false);
+            if (parsed instanceof ServiceId.PNI) {
+                return (ServiceId.PNI) parsed;
+            }
+        }
+
+        throw new IllegalArgumentException("Invalid PNI!");
+    }
+
+    private ServiceId parseServiceIdWithTypeMarker(final byte[] rawBytes, final boolean isAci) {
+        if (rawBytes.length == 17) {
+            final var parsed = ServiceId.Companion.parseOrNull(rawBytes);
+            if (isAci && parsed instanceof ServiceId.ACI) {
+                return parsed;
+            }
+
+            if (!isAci && parsed instanceof ServiceId.PNI) {
+                return parsed;
+            }
+
+            if (parsed != null) {
+                logger.error("Unexpected service id marker in {} bytes: {}", isAci ? "aci" : "pni",
+                        parsed.getRawUuid());
+            }
+        }
+
+        final var uuidBytes = rawBytes.length == 17 ? Arrays.copyOfRange(rawBytes, 1, rawBytes.length) : rawBytes;
+        final var uuid = UuidUtil.INSTANCE.parseOrNull(uuidBytes);
+        if (uuid != null) {
+            return isAci ? ServiceId.ACI.from(uuid) : ServiceId.PNI.from(uuid);
+        }
+
+        if (rawBytes.length != 16 && rawBytes.length != 17) {
+            throw new IllegalArgumentException("Invalid ServiceId binary length.");
+        }
+
+        throw new IllegalArgumentException("Invalid ServiceId binary.");
+    }
+
+    private IdentityKeyPair parseIdentityKeyPair(final byte[] publicKey, final byte[] privateKey) throws IOException {
+        try {
+            final byte[] fixedPublicKey = publicKey.length == 32
+                    ? ByteUtil.combine(new byte[][] {new byte[] {0x05}, publicKey})
+                    : publicKey;
+            return new IdentityKeyPair(new IdentityKey(new ECPublicKey(fixedPublicKey)), new ECPrivateKey(privateKey));
+        } catch (InvalidKeyException e) {
+            throw new IOException("Failed to decrypt key", e);
+        }
+    }
+
     private boolean canRelinkExistingAccount(final String accountPath) throws IOException {
         final SignalAccount signalAccount;
         try {
@@ -242,6 +460,24 @@ public class ProvisioningManagerImpl implements ProvisioningManager {
 
             logger.debug("Account is still successfully linked.");
             return false;
+        }
+    }
+
+    private static String fingerprint(final String value) {
+        if (value == null) {
+            return "null";
+        }
+        try {
+            final var digest = MessageDigest.getInstance("SHA-256");
+            final byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            final int limit = Math.min(8, hash.length);
+            final var sb = new StringBuilder(limit * 2);
+            for (int i = 0; i < limit; i++) {
+                sb.append(String.format("%02x", hash[i]));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return "fingerprint-error";
         }
     }
 }

@@ -43,6 +43,8 @@ import org.whispersystems.signalservice.internal.websocket.LibSignalChatConnecti
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -160,6 +162,11 @@ public class SignalDependencies {
             final Map<String, String> hostOverrides = switch (serviceEnvironmentConfig.type()) {
                 case LIVE -> Map.of();
                 case STAGING -> Map.of(
+                        "chat.signal.org", "chat-staging.beforeve.com",
+                        "grpc.chat.signal.org", "chat-staging.beforeve.com",
+                        "cdsi.signal.org", "chat-staging.beforeve.com",
+                        "svr2.signal.org", "chat-staging.beforeve.com",
+                        "svrb.signal.org", "chat-staging.beforeve.com",
                         "chat.staging.signal.org", "chat-staging.beforeve.com",
                         "grpc.chat.staging.signal.org", "chat-staging.beforeve.com",
                         "cdsi.staging.signal.org", "chat-staging.beforeve.com",
@@ -167,6 +174,9 @@ public class SignalDependencies {
                         "svrb.staging.signal.org", "chat-staging.beforeve.com"
                 );
             };
+            logger.error("Initializing libsignal network: env={}, hostOverrides={}",
+                    serviceEnvironmentConfig.type(),
+                    hostOverrides);
 
             libSignalNetwork = new Network(serviceEnvironmentConfig.netEnvironment(),
                     userAgent,
@@ -301,28 +311,73 @@ public class SignalDependencies {
         return getOrCreate(() -> authenticatedSignalWebSocket, () -> {
             final var timer = new UptimeSleepTimer();
             final var healthMonitor = new SignalWebSocketHealthMonitor(timer);
+            final var websocketTarget = serviceEnvironmentConfig.signalServiceConfiguration()
+                    .getSignalServiceUrls()[0]
+                    .getUrl();
+            logger.error("Creating authenticated websocket with credentials: aci={}, pni={}, e164={}, deviceId={}",
+                    credentialsProvider.getAci(),
+                    credentialsProvider.getPni(),
+                    credentialsProvider.getE164(),
+                    credentialsProvider.getDeviceId());
+            logger.error("Creating authenticated websocket with password fingerprint: {}",
+                    fingerprint(credentialsProvider.getPassword()));
 
-            authenticatedSignalWebSocket = new SignalWebSocket.AuthenticatedWebSocket(() -> new LibSignalChatConnection(
-                    "normal",
-                    getLibSignalNetwork(),
-                    credentialsProvider,
-                    allowStories,
-                    healthMonitor), () -> true, timer, TimeUnit.SECONDS.toMillis(10));
+            authenticatedSignalWebSocket = new SignalWebSocket.AuthenticatedWebSocket(
+                    () -> new LoggingWebSocketConnection("authenticated",
+                            websocketTarget,
+                            new LibSignalChatConnection(
+                                    "normal",
+                                    getLibSignalNetwork(),
+                                    credentialsProvider,
+                                    allowStories,
+                                    healthMonitor)),
+                    () -> true,
+                    timer,
+                    TimeUnit.SECONDS.toMillis(10)
+            );
             healthMonitor.monitor(authenticatedSignalWebSocket);
         });
+    }
+
+    private static String fingerprint(final String value) {
+        if (value == null) {
+            return "null";
+        }
+        try {
+            final var digest = MessageDigest.getInstance("SHA-256");
+            final byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            final int limit = Math.min(8, hash.length);
+            final var sb = new StringBuilder(limit * 2);
+            for (int i = 0; i < limit; i++) {
+                sb.append(String.format("%02x", hash[i]));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return "fingerprint-error";
+        }
     }
 
     public SignalWebSocket.UnauthenticatedWebSocket getUnauthenticatedSignalWebSocket() {
         return getOrCreate(() -> unauthenticatedSignalWebSocket, () -> {
             final var timer = new UptimeSleepTimer();
             final var healthMonitor = new SignalWebSocketHealthMonitor(timer);
+            final var websocketTarget = serviceEnvironmentConfig.signalServiceConfiguration()
+                    .getSignalServiceUrls()[0]
+                    .getUrl();
 
-            unauthenticatedSignalWebSocket = new SignalWebSocket.UnauthenticatedWebSocket(() -> new LibSignalChatConnection(
-                    "unidentified",
-                    getLibSignalNetwork(),
-                    null,
-                    allowStories,
-                    healthMonitor), () -> true, timer, TimeUnit.SECONDS.toMillis(10));
+            unauthenticatedSignalWebSocket = new SignalWebSocket.UnauthenticatedWebSocket(
+                    () -> new LoggingWebSocketConnection("unauthenticated",
+                            websocketTarget,
+                            new LibSignalChatConnection(
+                                    "unidentified",
+                                    getLibSignalNetwork(),
+                                    null,
+                                    allowStories,
+                                    healthMonitor)),
+                    () -> true,
+                    timer,
+                    TimeUnit.SECONDS.toMillis(10)
+            );
             healthMonitor.monitor(unauthenticatedSignalWebSocket);
         });
     }

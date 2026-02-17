@@ -67,8 +67,8 @@ public class DaemonCommand implements MultiLocalCommand, LocalCommand {
                 .help("Expose a JSON-RPC interface on a TCP socket (default localhost:7583).");
         subparser.addArgument("--http")
                 .nargs("?")
-                .setConst("localhost:8080")
-                .help("Expose a JSON-RPC interface as http endpoint (default localhost:8080).");
+                .setConst("localhost:7582")
+                .help("Expose a JSON-RPC interface as http endpoint (default localhost:7582).");
         subparser.addArgument("--no-receive-stdout")
                 .help("Don’t print received messages to stdout.")
                 .action(Arguments.storeTrue());

@@ -169,6 +169,14 @@ public class HttpServerHandler implements AutoCloseable {
             httpExchange.sendResponseHeaders(200, 0);
             final var sender = new ServerSentEventSender(httpExchange.getResponseBody());
 
+            // Flush headers immediately so SSE clients (including OpenClaw) don't time out
+            // waiting for the first event/keep-alive.
+            try {
+                sender.sendKeepAlive();
+            } catch (IOException ignored) {
+                return;
+            }
+
             final var shouldStop = new AtomicBoolean(false);
             final var handlers = subscribeReceiveHandlers(managers, sender, () -> {
                 shouldStop.set(true);

@@ -132,9 +132,7 @@ public class StorageHelper {
             if (account.isPrimaryDevice()) {
                 needsForcePush = true;
             }
-        } else if (remoteManifest.recordIkm == null && account.getSelfRecipientProfile()
-                .getCapabilities()
-                .contains(Profile.Capability.storageServiceEncryptionV2Capability)) {
+        } else if (remoteManifest.recordIkm == null && hasSelfStorageServiceEncryptionV2Capability()) {
             logger.debug("The SSRE2 capability is supported, but no recordIkm is set! Force pushing.");
             needsForcePush = true;
         } else {
@@ -413,9 +411,7 @@ public class StorageHelper {
         final var newStorageIds = newStorageRecords.stream().map(SignalStorageRecord::getId).toList();
 
         final RecordIkm recordIkm;
-        if (account.getSelfRecipientProfile()
-                .getCapabilities()
-                .contains(Profile.Capability.storageServiceEncryptionV2Capability)) {
+        if (hasSelfStorageServiceEncryptionV2Capability()) {
             logger.debug("Generating and including a new recordIkm.");
             recordIkm = RecordIkm.Companion.generate();
         } else {
@@ -462,6 +458,21 @@ public class StorageHelper {
             connection.commit();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to sync remote storage", e);
+        }
+    }
+
+    private boolean hasSelfStorageServiceEncryptionV2Capability() {
+        try {
+            final var selfProfile = account.getSelfRecipientProfile();
+            if (selfProfile == null || selfProfile.getCapabilities() == null) {
+                logger.warn("Self recipient profile or capabilities are missing; treating SSRE2 as unsupported for now.");
+                return false;
+            }
+            return selfProfile.getCapabilities().contains(Profile.Capability.storageServiceEncryptionV2Capability);
+        } catch (RuntimeException e) {
+            logger.warn("Failed to read self recipient profile capabilities; treating SSRE2 as unsupported for now.",
+                    e);
+            return false;
         }
     }
 

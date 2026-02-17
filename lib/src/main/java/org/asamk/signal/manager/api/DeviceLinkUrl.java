@@ -47,7 +47,7 @@ public record DeviceLinkUrl(String deviceIdentifier, ECPublicKey deviceKey) {
     public URI createDeviceLinkUri() {
         final var deviceKeyString = Base64.getEncoder().encodeToString(deviceKey.serialize()).replace("=", "");
         try {
-            return new URI("sgnl://linkdevice?uuid="
+            return new URI("kylith://linkdevice?uuid="
                     + URLEncoder.encode(deviceIdentifier, StandardCharsets.UTF_8)
                     + "&pub_key="
                     + URLEncoder.encode(deviceKeyString, StandardCharsets.UTF_8));
