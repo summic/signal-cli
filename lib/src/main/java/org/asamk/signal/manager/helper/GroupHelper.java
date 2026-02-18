@@ -130,7 +130,8 @@ public class GroupHelper {
     public GroupInfoV2 getOrMigrateGroup(
             final GroupMasterKey groupMasterKey,
             final int revision,
-            final byte[] signedGroupChange
+            final byte[] signedGroupChange,
+            final boolean ignoreAvatars
     ) {
         final var groupSecretParams = GroupSecretParams.deriveFromMasterKey(groupMasterKey);
 
@@ -166,7 +167,7 @@ public class GroupHelper {
             if (group != null) {
                 storeProfileKeysFromMembers(group);
                 final var avatar = group.avatar;
-                if (!avatar.isEmpty()) {
+                if (!avatar.isEmpty() && !ignoreAvatars) {
                     downloadGroupAvatar(groupId, groupSecretParams, avatar);
                 }
             }
@@ -391,7 +392,8 @@ public class GroupHelper {
                 .joinGroup(inviteLinkUrl.getGroupMasterKey(), inviteLinkUrl.getPassword(), groupJoinInfo);
         final var group = getOrMigrateGroup(inviteLinkUrl.getGroupMasterKey(),
                 groupJoinInfo.revision + 1,
-                changeResponse.group_change == null ? null : changeResponse.group_change.encode());
+                changeResponse.group_change == null ? null : changeResponse.group_change.encode(),
+                false);
 
         if (group.getGroup() == null) {
             // Only requested member, can't send update to group members

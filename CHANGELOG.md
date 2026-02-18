@@ -8,7 +8,13 @@
 
 - Remove isRegistered method without parameters from Signal dbus interface, which always returned `true`
 - Remove `sandbox` value for --service-environment parameter, use `staging` instead
-- The `daemon` command now requires at least one channel parameter (`--socket`, `--dbus`, ...) and no longer defaults to dbus
+- The `daemon` command now requires at least one channel parameter (`--socket`, `--dbus`, ...) and no longer defaults to
+  dbus
+
+### Added
+
+- Add --ignore-avatars flag to prevent downloading avatars
+- Add --ignore-stickers flag to prevent downloading sticker packs
 
 ## [0.13.24] - 2026-02-05
 
@@ -156,9 +162,11 @@ Requires libsignal-client version 0.68.1.
 Requires libsignal-client version 0.66.2.
 
 ### Added
+
 - Allow setting nickname and note with `updateContact` command
 
 ### Fixed
+
 - Fix syncing nickname, note and expiration timer
 - Fix check for registered users with a proxy
 - Improve handling of storage records not yet supported by signal-cli
@@ -184,6 +192,7 @@ Requires libsignal-client version 0.65.2.
 Requires libsignal-client version 0.64.0.
 
 ### Fixed
+
 - Fix issue with receiving messages that have an invalid destination
 
 ## [0.13.10] - 2024-11-30
@@ -196,6 +205,7 @@ Requires libsignal-client version 0.62.0.
 - Fix receiving expiration timer updates
 
 ### Improved
+
 - Add support for new storage encryption scheme
 
 ## [0.13.9] - 2024-10-28
