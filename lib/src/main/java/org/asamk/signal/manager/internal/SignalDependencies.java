@@ -399,7 +399,7 @@ public class SignalDependencies {
                         executor,
                         ServiceConfig.MAX_ENVELOPE_SIZE,
                         () -> true,
-                        false,
+                        true,
                         true));
     }
 

@@ -156,7 +156,7 @@ public class SyncHelper {
 
         try {
             try (OutputStream fos = new FileOutputStream(contactsFile)) {
-                var out = new DeviceContactsOutputStream(fos, false, true);
+                var out = new DeviceContactsOutputStream(fos, true, true);
                 for (var contactPair : account.getContactStore().getContacts()) {
                     final var recipientId = contactPair.first();
                     final var contact = contactPair.second();
