@@ -338,7 +338,7 @@ getGroupMembers(groupId<ay>) -> members<as>::
 Exceptions: None, if the group name is not found an empty array is returned
 
 joinGroup(inviteURI<s>) -> <>::
-* inviteURI : String starting with https://signal.group/#
+* inviteURI : String starting with https://beforeve.com/#
 
 Behavior of this method depends on the `requirePermission` parameter of the `enableLink` method.
 If permission is required, `joinGroup` adds you to the requesting members list.
@@ -460,7 +460,7 @@ Groups have the following (case-sensitive) properties:
 * PermissionAddMember<s> : String representing who has permission to add members *ONLY_ADMINS, EVERY_MEMBER*
 * PermissionEditDetails<s> : String representing who may edit group details *ONLY_ADMINS, EVERY_MEMBER*
 * PermissionSendMessage<s> : String representing who post messages to group *ONLY_ADMINS, EVERY_MEMBER* (note that ONLY_ADMINS is equivalent to IsAnnouncementGroup)
-* GroupInviteLink<s> (read-only) : String of the invitation link (starts with https://signal.group/#)
+* GroupInviteLink<s> (read-only) : String of the invitation link (starts with https://beforeve.com/#)
 
 To get a property, use (replacing `--session` with `--system` if needed):
 `dbus-send --session --dest=org.asamk.Signal --print-reply $OBJECT_PATH org.freedesktop.DBus.Properties.Get string:org.asamk.Signal.Group string:$PROPERTY_NAME`
@@ -518,7 +518,7 @@ Exceptions: Failure
 
 resetLink() -> <>::
 
-Resets the group's invitation link to a new random URL starting with https://signal.group/#
+Resets the group's invitation link to a new random URL starting with https://beforeve.com/#
 
 Exceptions: Failure
 

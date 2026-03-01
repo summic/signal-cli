@@ -1074,7 +1074,7 @@ See https://github.com/AsamK/signal-cli/wiki/Provide-native-lib-for-libsignal fo
 
 - Accept group invitation with `updateGroup -g GROUP_ID`
 - Decline group invitation with `quitGroup -g GROUP_ID`
-- Join group via invitation link `joinGroup --uri https://signal.group/#...`
+- Join group via invitation link `joinGroup --uri https://beforeve.com/#...`
 
 ### Fixed
 

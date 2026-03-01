@@ -48,7 +48,7 @@ Example:
 
 REQUEST: `{"jsonrpc":"2.0","method":"listGroups","id":"my special mark"}`
 
-RESPONSE: `{"jsonrpc":"2.0","result":[{"id":"Pmpi+EfPWmsxiomLe9Nx2XF9HOE483p6iKiFj65iMwI=","name":"My Group","description":"It's special because it is mine.","isMember":true,"isBlocked":false,"members":["+33123456789","+440123456789"],"pendingMembers":[],"requestingMembers":[],"admins":["+33123456789","+440123456789"],"groupInviteLink":"https://signal.group/#CjQKIAtcbUw482i7bqvmJCwdgvg0FMif52N5v9lGg_bE4U3zEhCjHKSaPzWImMpnCbU8A1r0"}],"id":"my special mark"}`
+RESPONSE: `{"jsonrpc":"2.0","result":[{"id":"Pmpi+EfPWmsxiomLe9Nx2XF9HOE483p6iKiFj65iMwI=","name":"My Group","description":"It's special because it is mine.","isMember":true,"isBlocked":false,"members":["+33123456789","+440123456789"],"pendingMembers":[],"requestingMembers":[],"admins":["+33123456789","+440123456789"],"groupInviteLink":"https://beforeve.com/#CjQKIAtcbUw482i7bqvmJCwdgvg0FMif52N5v9lGg_bE4U3zEhCjHKSaPzWImMpnCbU8A1r0"}],"id":"my special mark"}`
 
 From the command line:
 
